@@ -79,6 +79,10 @@ See all available command line options:
 uv run map-tile-downloader -h
 ```
 
+## Acknowledgement
+
+Based on work by Sampsa Kiiskinen.
+
 ## License
 
 This project is marked [CC0
