@@ -92,11 +92,9 @@ def download_tile(
     url: str,
     session: Session,
     output_dir: Path,
+    wait_sec: int,
+    wait_jitter: float,
     dry_run: bool = False,
-    connect_timeout_sec: int = 5,
-    read_timeout_sec: int = 30,
-    wait_sec: int = 3,
-    wait_jitter: float = 0.5,
 ) -> bool:
     # Dry run
     if dry_run:
@@ -119,7 +117,7 @@ def download_tile(
     # Download
     print(f"{tile.z},{tile.x},{tile.y}: downloading {url}")
     try:
-        with session.get(url, timeout=(connect_timeout_sec, read_timeout_sec), stream=True) as res:
+        with session.get(url, timeout=(50, 30), stream=True) as res:
             res.raise_for_status()  # Raise on failure after HTTPAdapter's retries
 
             with open(temp_path, "wb") as f:
@@ -149,6 +147,8 @@ DEFAULT_ZOOM = 10
 DEFAULT_OUTPUT_DIR = "tiles"
 DEFAULT_USER_AGENT = "Mozilla/5.0 (X11; Linux x86_64; rv:161.0) Gecko/20100101 Firefox/161.0"
 DEFAULT_COOKIES_FILE = "cookies.env"
+DEFAULT_WAIT_SEC = 1
+DEFAULT_WAIT_JITTER = 0.5
 
 
 def main() -> None:
@@ -199,6 +199,18 @@ def main() -> None:
         "--cookies-file",
         default=DEFAULT_COOKIES_FILE,
         help=f"Cookies file (default {DEFAULT_COOKIES_FILE})",
+    )
+    parser.add_argument(
+        "-w",
+        "--wait-sec",
+        default=DEFAULT_WAIT_SEC,
+        help=f"Number of seconds to wait between requests (default {DEFAULT_WAIT_SEC})",
+    )
+    parser.add_argument(
+        "-j",
+        "--wait-jitter",
+        default=DEFAULT_WAIT_JITTER,
+        help=f"Jitter as a fraction of WAIT_SEC (default {DEFAULT_WAIT_JITTER})",
     )
     parser.add_argument(
         "-n",
@@ -252,7 +264,15 @@ def main() -> None:
         random.shuffle(tiles)
         for tile in tiles:
             url = url_template.substitute(z=tile.z, x=tile.x, y=tile.y, timestamp=timestamp)
-            download_tile(tile, url, session, output_dir, dry_run=args.dry_run)
+            download_tile(
+                tile,
+                url,
+                session,
+                output_dir,
+                wait_sec=args.wait_sec,
+                wait_jitter=args.wait_jitter,
+                dry_run=args.dry_run,
+            )
     print("Done")
 
 
